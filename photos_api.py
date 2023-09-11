@@ -54,7 +54,10 @@ if __name__ == "__main__":
     print(start_date, end_date)
 
     photos_api = PhotosApi()
-    shared_albums = [album for album in photos_api.get_shared_albums() if album in args.album_names]
+    print(args.album_names)
+    print([album.title for album in photos_api.get_shared_albums()])
+    shared_albums = [album for album in photos_api.get_shared_albums() if album.title in args.album_names]
+    print([album.title for album in shared_albums])
 
     for album in shared_albums:
         print(f"downloading from {album.title}")
