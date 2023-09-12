@@ -1,10 +1,12 @@
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 import argparse
-import datetime
+from datetime import datetime
 import pickle
 from config import Config
 from shared_album import SharedAlbum
+import os
+from events import EventLoader
 
 class PhotosApi:
     SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly',
@@ -47,19 +49,24 @@ if __name__ == "__main__":
                         help='end date for file range')
     parser.add_argument('--album-names', type=str, nargs="*", required=False,
                         help='which albums to download')
+    parser.add_argument('--event-list', type=str, required=False, default=os.path.join(os.curdir, "event_dates.json"))
 
     args = parser.parse_args()
-    start_date = datetime.strptime(args.start_date, "%Y-%m-%d") if args.start_date is not None else datetime.datetime(2000, 1, 1)
-    end_date = datetime.datetime.strptime(args.end_date, "%Y-%m-%d")  if args.end_date is not None else None
+    start_date = datetime.strptime(args.start_date, "%Y-%m-%d") if args.start_date is not None else datetime(2000, 1, 1)
+    end_date = datetime.strptime(args.end_date, "%Y-%m-%d")  if args.end_date is not None else None
+    events = EventLoader.load_events(args.event_list)
     print(start_date, end_date)
 
     photos_api = PhotosApi()
     print(args.album_names)
-    print([album.title for album in photos_api.get_shared_albums()])
     shared_albums = [album for album in photos_api.get_shared_albums() if album.title in args.album_names]
     print([album.title for album in shared_albums])
 
     for album in shared_albums:
         print(f"downloading from {album.title}")
-        album.download_and_rename(Config.path + "/google_photo_downloads/")
+        print(f"parsing event dates")
+        events_for_album = events.get(album.title)
+        print(events_for_album)
+        album.event_list = events_for_album
+        album.download_and_rename(Config.path + "/", start_date = start_date, end_date = end_date)
     print("done!")
